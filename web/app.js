@@ -636,7 +636,7 @@ function exportHTML() {
 // ─── Event listeners ─────────────────────────────────────────────────────────
 btnStart.addEventListener('click', startCamera);
 btnStop.addEventListener('click',  stopCamera);
-btnCsv.addEventListener('click',   exportCSV);
+// btnCsv.addEventListener('click',   exportCSV);
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 loadModel();
