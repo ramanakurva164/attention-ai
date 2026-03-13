@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0d0d14" />
+  <meta name="description" content="AI-powered real-time attention tracking using your device camera." />
+  <title>Attention Tracker — AI Focus Monitor</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<!-- ── ALERT OVERLAY (injected by JS when needed) ─────────────────────────── -->
+<div id="alert-overlay" class="alert-overlay hidden">
+  <div class="alert-box">
+    <div class="alert-icon">⚠</div>
+    <div class="alert-title">LOW ATTENTION</div>
+    <div class="alert-sub">Focus on the screen!</div>
+  </div>
+</div>
+
+<!-- ── TOP BAR ─────────────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <span class="brand-dot"></span>
+    <span>AttentionAI</span>
+  </div>
+  <div class="topbar-status" id="status-chip">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-label">Ready</span>
+  </div>
+</header>
+
+<!-- ── MAIN LAYOUT ─────────────────────────────────────────────────────────── -->
+<main class="layout">
+
+  <!-- Camera + Canvas -->
+  <section class="camera-section">
+    <div class="camera-wrapper" id="camera-wrapper">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas"></canvas>
+
+      <!-- Empty state -->
+      <div class="camera-placeholder" id="placeholder">
+        <div class="placeholder-icon">📷</div>
+        <p>Click <strong>Start Camera</strong> to begin</p>
+        <p class="placeholder-sub">Works on mobile &amp; desktop</p>
+      </div>
+
+      <!-- FPS chip -->
+      <div class="fps-chip" id="fps-chip">0 FPS</div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="btn btn-primary" id="btn-start">
+        <span class="btn-icon">▶</span> Start Camera
+      </button>
+      <button class="btn btn-danger hidden" id="btn-stop">
+        <span class="btn-icon">■</span> Stop
+      </button>
+      <button class="btn btn-outline" id="btn-export">
+        <span class="btn-icon">↓</span> Export Report
+      </button>
+    </div>
+  </section>
+
+  <!-- HUD Panel -->
+  <aside class="hud-panel">
+
+    <!-- Attention Score -->
+    <div class="hud-card hud-card--attention">
+      <div class="hud-label">ATTENTION SCORE</div>
+      <div class="score-display">
+        <span id="score-value">–</span><span class="score-unit">%</span>
+      </div>
+      <div class="score-bar-track">
+        <div class="score-bar-fill" id="score-bar"></div>
+        <div class="score-bar-text" id="score-bar-text">–%</div>
+      </div>
+      <div class="hud-status-label" id="hud-status">Initialising…</div>
+    </div>
+
+    <!-- Session Stats -->
+    <div class="hud-card">
+      <div class="hud-label">SESSION</div>
+      <div class="stat-grid">
+        <div class="stat-item">
+          <div class="stat-value" id="stat-avg">–</div>
+          <div class="stat-key">Avg %</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-blinks">0</div>
+          <div class="stat-key">Blinks</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-dist">0</div>
+          <div class="stat-key">Distractions</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-time">0s</div>
+          <div class="stat-key">Duration</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Head Pose -->
+    <div class="hud-card">
+      <div class="hud-label">HEAD POSE</div>
+      <div class="pose-grid">
+        <div class="pose-row">
+          <span class="pose-key">Pitch</span>
+          <div class="pose-bar-wrap"><div class="pose-bar" id="pose-pitch-bar"></div></div>
+          <span class="pose-val" id="pose-pitch">+0.0°</span>
+        </div>
+        <div class="pose-row">
+          <span class="pose-key">Yaw</span>
+          <div class="pose-bar-wrap"><div class="pose-bar" id="pose-yaw-bar"></div></div>
+          <span class="pose-val" id="pose-yaw">+0.0°</span>
+        </div>
+        <div class="pose-row">
+          <span class="pose-key">Roll</span>
+          <div class="pose-bar-wrap"><div class="pose-bar" id="pose-roll-bar"></div></div>
+          <span class="pose-val" id="pose-roll">+0.0°</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gaze -->
+    <div class="hud-card">
+      <div class="hud-label">GAZE</div>
+      <div class="gaze-row">
+        <span class="gaze-dir" id="gaze-left-dir">–</span>
+        <div class="gaze-track">
+          <div class="gaze-cursor" id="gaze-cursor"></div>
+        </div>
+        <span class="gaze-dir" id="gaze-right-dir">–</span>
+      </div>
+      <div class="gaze-label" id="gaze-label">Awaiting data</div>
+    </div>
+
+    <!-- Eyes -->
+    <div class="hud-card">
+      <div class="hud-label">EYES</div>
+      <div class="eye-row">
+        <div class="eye-indicator" id="eye-left">
+          <div class="eye-icon" id="eye-left-icon">👁</div>
+          <div class="eye-sub">Left</div>
+          <div class="eye-ear" id="ear-left">–</div>
+        </div>
+        <div class="eye-state" id="eye-state-label">OPEN</div>
+        <div class="eye-indicator" id="eye-right">
+          <div class="eye-icon" id="eye-right-icon">👁</div>
+          <div class="eye-sub">Right</div>
+          <div class="eye-ear" id="ear-right">–</div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+</main>
+
+<!-- ── FOOTER ──────────────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <span>AttentionAI · Powered by MediaPipe &amp; WebAssembly · Camera stays on your device</span>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
